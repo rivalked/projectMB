@@ -30,6 +30,8 @@ export default function Appointments() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week">("day");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [branchFilter, setBranchFilter] = useState<string>("all");
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
   const { toast } = useToast();
 
   const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
@@ -143,7 +145,10 @@ export default function Appointments() {
     
     return appointments.filter(apt => {
       const aptDate = parseISO(apt.appointmentDate.toString());
-      return aptDate >= start && aptDate <= end;
+      const dateMatch = aptDate >= start && aptDate <= end;
+      const branchMatch = branchFilter === "all" || apt.branchId === branchFilter;
+      const employeeMatch = employeeFilter === "all" || apt.employeeId === employeeFilter;
+      return dateMatch && branchMatch && employeeMatch;
     }).sort((a, b) => {
       const dateA = parseISO(a.appointmentDate.toString());
       const dateB = parseISO(b.appointmentDate.toString());
@@ -191,12 +196,12 @@ export default function Appointments() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Календарь записей</h2>
         <div className="flex items-center space-x-4">
-          <Select value={branches[0]?.id || ""}>
+          <Select value={branchFilter} onValueChange={setBranchFilter} disabled={isLoading} data-testid="select-branch-filter">
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Все филиалы" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Все филиалы</SelectItem>
+              <SelectItem value="all">Все филиалы</SelectItem>
               {branches.map((branch) => (
                 <SelectItem key={branch.id} value={branch.id}>
                   {branch.name}
@@ -204,12 +209,12 @@ export default function Appointments() {
               ))}
             </SelectContent>
           </Select>
-          <Select value="">
+          <Select value={employeeFilter} onValueChange={setEmployeeFilter} disabled={isLoading} data-testid="select-employee-filter">
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Все мастера" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Все мастера</SelectItem>
+              <SelectItem value="all">Все мастера</SelectItem>
               {employees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
                   {employee.name}
