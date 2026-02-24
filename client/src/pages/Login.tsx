@@ -11,8 +11,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Scissors, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 
 export default function Login() {
+  const { t } = useI18n();
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,8 +62,8 @@ export default function Login() {
               <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Scissors className="h-8 w-8 text-primary-foreground" />
               </div>
-              <h1 className="text-2xl font-bold" data-testid="app-title">Салон CRM</h1>
-              <p className="text-muted-foreground mt-2">Войдите в систему управления</p>
+              <h1 className="text-2xl font-bold" data-testid="app-title">{t("app_title")}</h1>
+              <p className="text-muted-foreground mt-2">{t("login_title")}</p>
             </div>
 
             <Form {...form}>
@@ -71,11 +73,12 @@ export default function Login() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email или телефон</FormLabel>
+                      <FormLabel>{t("email_or_phone")}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           placeholder="admin@salon.ru или +7 (999) 123-45-67"
+                          autoComplete="username"
                           data-testid="input-email"
                         />
                       </FormControl>
@@ -89,7 +92,7 @@ export default function Login() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Пароль</FormLabel>
+                      <FormLabel>{t("password")}</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -97,6 +100,7 @@ export default function Login() {
                             type={showPassword ? "text" : "password"}
                             placeholder="Введите пароль"
                             className="pr-10"
+                            autoComplete="current-password"
                             data-testid="input-password"
                           />
                           <Button
@@ -150,7 +154,7 @@ export default function Login() {
                   disabled={isLoading}
                   data-testid="button-submit"
                 >
-                  {isLoading ? "Вход..." : "Войти"}
+                  {isLoading ? "Вход..." : t("login_submit")}
                 </Button>
               </form>
             </Form>

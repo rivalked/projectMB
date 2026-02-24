@@ -20,8 +20,10 @@ import {
 } from "@shared/schema";
 import { Plus, Search, Edit, Trash2, Building, Users, MapPin, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 
 export default function Branches() {
+  const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -69,15 +71,15 @@ export default function Branches() {
       setIsAddDialogOpen(false);
       form.reset();
       toast({
-        title: "Филиал добавлен",
-        description: "Новый филиал успешно добавлен в систему",
+        title: t("branch_added_title"),
+        description: t("branch_added_desc"),
       });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: error.message || "Не удалось добавить филиал",
+        title: t("error"),
+        description: error.message || t("failed_add_branch"),
       });
     },
   });
@@ -89,15 +91,15 @@ export default function Branches() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/branches"] });
       toast({
-        title: "Филиал удален",
-        description: "Филиал успешно удален из системы",
+        title: t("branch_deleted_title"),
+        description: t("branch_deleted_desc"),
       });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: error.message || "Не удалось удалить филиал",
+        title: t("error"),
+        description: error.message || t("failed_delete_branch"),
       });
     },
   });
@@ -116,13 +118,13 @@ export default function Branches() {
     if (branchEmployees.length > 0) {
       toast({
         variant: "destructive",
-        title: "Невозможно удалить филиал",
-        description: "В филиале работают сотрудники. Сначала переведите их в другие филиалы.",
+        title: t("cannot_delete_branch_title"),
+        description: t("cannot_delete_branch_desc"),
       });
       return;
     }
 
-    if (confirm("Вы уверены, что хотите удалить этот филиал?")) {
+    if (confirm(t("confirm_delete_branch"))) {
       deleteBranchMutation.mutate(id);
     }
   };
@@ -157,17 +159,17 @@ export default function Branches() {
   return (
     <div className="p-6" data-testid="branches-page">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Филиалы</h2>
+        <h2 className="text-2xl font-bold">{t("title_branches")}</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-branch">
               <Plus className="h-4 w-4 mr-2" />
-              Добавить филиал
+              {t("add_branch")}
             </Button>
           </DialogTrigger>
           <DialogContent data-testid="dialog-add-branch">
             <DialogHeader>
-              <DialogTitle>Добавить новый филиал</DialogTitle>
+              <DialogTitle>{t("add_branch")}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -176,9 +178,9 @@ export default function Branches() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Название филиала</FormLabel>
+                      <FormLabel>{t("branch_name")}</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Введите название филиала" data-testid="input-branch-name" />
+                        <Input {...field} placeholder={t("branch_name")} data-testid="input-branch-name" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -189,9 +191,9 @@ export default function Branches() {
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Адрес</FormLabel>
+                      <FormLabel>{t("branch_address")}</FormLabel>
                       <FormControl>
-                        <Textarea {...field} placeholder="Введите полный адрес филиала" data-testid="input-branch-address" />
+                        <Textarea {...field} placeholder={t("branch_address")} data-testid="input-branch-address" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -202,7 +204,7 @@ export default function Branches() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Телефон (необязательно)</FormLabel>
+                      <FormLabel>{t("branch_phone_optional")}</FormLabel>
                       <FormControl>
                         <Input {...field} value={field.value || ""} placeholder="+7 (495) 123-45-67" data-testid="input-branch-phone" />
                       </FormControl>
@@ -212,10 +214,10 @@ export default function Branches() {
                 />
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Отмена
+                    {t("cancel")}
                   </Button>
                   <Button type="submit" disabled={addBranchMutation.isPending} data-testid="button-save-branch">
-                    {addBranchMutation.isPending ? "Сохранение..." : "Сохранить"}
+                    {addBranchMutation.isPending ? t("saving") : t("save")}
                   </Button>
                 </div>
               </form>
@@ -230,7 +232,7 @@ export default function Branches() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Всего филиалов</p>
+                <p className="text-sm text-muted-foreground">{t("total_branches")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-total-branches">
                   {branches.length}
                 </p>
@@ -246,7 +248,7 @@ export default function Branches() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Всего сотрудников</p>
+                <p className="text-sm text-muted-foreground">{t("total_employees")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-total-employees">
                   {employees.length}
                 </p>
@@ -262,7 +264,7 @@ export default function Branches() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Среднее сотр./филиал</p>
+                <p className="text-sm text-muted-foreground">{t("avg_employees")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-avg-employees">
                   {branches.length > 0 ? Math.round(employees.length / branches.length) : 0}
                 </p>
@@ -281,7 +283,7 @@ export default function Branches() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Поиск по названию или адресу..."
+                placeholder={t("search_branches_placeholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -294,11 +296,11 @@ export default function Branches() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Название</TableHead>
-                  <TableHead>Адрес</TableHead>
-                  <TableHead>Телефон</TableHead>
-                  <TableHead>Сотрудники</TableHead>
-                  <TableHead>Клиенты</TableHead>
+                  <TableHead>{t("table_branch")}</TableHead>
+                  <TableHead>{t("table_address")}</TableHead>
+                  <TableHead>{t("table_phone")}</TableHead>
+                  <TableHead>{t("table_employees")}</TableHead>
+                  <TableHead>{t("table_clients")}</TableHead>
                   <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -306,7 +308,7 @@ export default function Branches() {
                 {filteredBranches.length === 0 ? (
                   <TableRow data-testid="no-branches-row">
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      {searchTerm ? "Филиалы не найдены" : "Нет добавленных филиалов"}
+                      {searchTerm ? t("branches_not_found") : t("no_branches")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -341,7 +343,7 @@ export default function Branches() {
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">Не указан</span>
+                          <span className="text-sm text-muted-foreground">{t("not_specified")}</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -386,7 +388,7 @@ export default function Branches() {
           {filteredBranches.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground" data-testid="text-pagination-info">
-                Показано {filteredBranches.length} из {branches.length} филиалов
+                {filteredBranches.length} / {branches.length}
               </p>
             </div>
           )}

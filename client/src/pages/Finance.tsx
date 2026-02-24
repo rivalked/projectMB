@@ -14,6 +14,7 @@ import { type Payment, type Client, type Appointment, type Service, type Branch 
 import { CalendarIcon, Filter, Download, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { ru } from "date-fns/locale";
+import { useI18n } from "@/lib/i18n";
 
 const paymentMethodColors = {
   cash: "#10b981",
@@ -22,6 +23,7 @@ const paymentMethodColors = {
 };
 
 export default function Finance() {
+  const { t, lang } = useI18n();
   const [dateRange, setDateRange] = useState<"week" | "month">("month");
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
@@ -94,9 +96,9 @@ export default function Finance() {
 
   const getPaymentMethodLabel = (method: string) => {
     switch (method) {
-      case "cash": return "Наличные";
-      case "card": return "Карта";
-      case "online": return "Онлайн";
+      case "cash": return lang === 'uz' ? t("uz_cash") : t("cash");
+      case "card": return lang === 'uz' ? t("uz_card") : t("card");
+      case "online": return lang === 'uz' ? t("uz_online") : t("online");
       default: return method;
     }
   };
@@ -168,20 +170,20 @@ export default function Finance() {
   return (
     <div className="p-6" data-testid="finance-page">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Финансы</h2>
+        <h2 className="text-2xl font-bold">{t("title_finance")}</h2>
         <div className="flex items-center space-x-4">
           <Select value={dateRange} onValueChange={(value: "week" | "month") => setDateRange(value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">Неделя</SelectItem>
-              <SelectItem value="month">Месяц</SelectItem>
+              <SelectItem value="week">{t("week")}</SelectItem>
+              <SelectItem value="month">{t("month")}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" data-testid="button-export-report">
             <Download className="h-4 w-4 mr-2" />
-            Экспорт
+            {t("export")}
           </Button>
         </div>
       </div>
@@ -192,7 +194,7 @@ export default function Finance() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Общая выручка</p>
+                <p className="text-sm text-muted-foreground">{t("overall_revenue")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-total-revenue">
                   {formatCurrency(totalRevenue)}
                 </p>
@@ -203,7 +205,7 @@ export default function Finance() {
             </div>
             <div className="mt-4 flex items-center text-sm">
               <span className="text-success">+15%</span>
-              <span className="text-muted-foreground ml-1">за месяц</span>
+              <span className="text-muted-foreground ml-1">{t("month")}</span>
             </div>
           </CardContent>
         </Card>
@@ -212,7 +214,7 @@ export default function Finance() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Выручка сегодня</p>
+                <p className="text-sm text-muted-foreground">{t("today_revenue")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-today-revenue">
                   {formatCurrency(todayRevenue)}
                 </p>
@@ -223,7 +225,7 @@ export default function Finance() {
             </div>
             <div className="mt-4 flex items-center text-sm">
               <span className="text-success">+8%</span>
-              <span className="text-muted-foreground ml-1">от среднего</span>
+              <span className="text-muted-foreground ml-1">{t("from_average")}</span>
             </div>
           </CardContent>
         </Card>
@@ -232,7 +234,7 @@ export default function Finance() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Количество платежей</p>
+                <p className="text-sm text-muted-foreground">{t("payments_count")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-payments-count">
                   {payments.length}
                 </p>
@@ -242,7 +244,7 @@ export default function Finance() {
               </div>
             </div>
             <div className="mt-4 flex items-center text-sm">
-              <span className="text-muted-foreground">Всего операций</span>
+              <span className="text-muted-foreground">{t("total_operations")}</span>
             </div>
           </CardContent>
         </Card>
@@ -252,7 +254,7 @@ export default function Finance() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <Card data-testid="revenue-chart">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Динамика выручки</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("revenue_dynamics")}</h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueChartData}>
@@ -260,7 +262,7 @@ export default function Finance() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip 
-                    formatter={(value) => [formatCurrency(Number(value)), "Выручка"]}
+                    formatter={(value) => [formatCurrency(Number(value)), t("weekly_revenue")]}
                   />
                   <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={4} />
                 </BarChart>
@@ -271,7 +273,7 @@ export default function Finance() {
 
         <Card data-testid="payment-methods-chart">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Способы оплаты</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("payment_methods")}</h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -313,22 +315,22 @@ export default function Finance() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">История платежей</h3>
+            <h3 className="text-lg font-semibold">{t("payments_history")}</h3>
             <div className="flex items-center space-x-4">
               <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Способ оплаты" />
+                  <SelectValue placeholder={t("payment_method")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Все способы</SelectItem>
-                  <SelectItem value="cash">Наличные</SelectItem>
-                  <SelectItem value="card">Карта</SelectItem>
-                  <SelectItem value="online">Онлайн</SelectItem>
+                  <SelectItem value="all">{t("all_methods")}</SelectItem>
+                  <SelectItem value="cash">{getPaymentMethodLabel("cash")}</SelectItem>
+                  <SelectItem value="card">{getPaymentMethodLabel("card")}</SelectItem>
+                  <SelectItem value="online">{getPaymentMethodLabel("online")}</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
-                Фильтры
+                {t("filters")}
               </Button>
             </div>
           </div>
@@ -337,19 +339,19 @@ export default function Finance() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Дата</TableHead>
-                  <TableHead>Клиент</TableHead>
-                  <TableHead>Услуга</TableHead>
-                  <TableHead>Способ оплаты</TableHead>
-                  <TableHead>Сумма</TableHead>
-                  <TableHead>Статус</TableHead>
+                  <TableHead>{t("date")}</TableHead>
+                  <TableHead>{t("client_col")}</TableHead>
+                  <TableHead>{t("service_col")}</TableHead>
+                  <TableHead>{t("payment_method")}</TableHead>
+                  <TableHead>{t("amount")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredPayments.length === 0 ? (
                   <TableRow data-testid="no-payments-row">
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Нет платежей для отображения
+                      {t("no_payments")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -382,7 +384,7 @@ export default function Finance() {
                           className={payment.status === "completed" ? "bg-success text-success-foreground" : ""}
                           data-testid={`badge-payment-status-${payment.id}`}
                         >
-                          {payment.status === "completed" ? "Завершен" : "В обработке"}
+                          {payment.status === "completed" ? t("completed") : t("processing")}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -395,7 +397,7 @@ export default function Finance() {
           {filteredPayments.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground" data-testid="text-pagination-info">
-                Показано {filteredPayments.length} из {payments.length} платежей
+                {filteredPayments.length} / {payments.length}
               </p>
             </div>
           )}

@@ -25,8 +25,10 @@ import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, User,
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, startOfDay, endOfDay, addDays, subDays } from "date-fns";
 import { ru } from "date-fns/locale";
+import { useI18n } from "@/lib/i18n";
 
 export default function Appointments() {
+  const { t } = useI18n();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week">("day");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -194,11 +196,11 @@ export default function Appointments() {
   return (
     <div className="p-6" data-testid="appointments-page">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Календарь записей</h2>
+        <h2 className="text-2xl font-bold">{t("title_appointments")}</h2>
         <div className="flex items-center space-x-4">
           <Select value={branchFilter} onValueChange={setBranchFilter} disabled={isLoading} data-testid="select-branch-filter">
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Все филиалы" />
+              <SelectValue placeholder={t("all_branches_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Все филиалы</SelectItem>
@@ -211,7 +213,7 @@ export default function Appointments() {
           </Select>
           <Select value={employeeFilter} onValueChange={setEmployeeFilter} disabled={isLoading} data-testid="select-employee-filter">
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Все мастера" />
+              <SelectValue placeholder={t("all_masters_placeholder")} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Все мастера</SelectItem>
@@ -226,12 +228,12 @@ export default function Appointments() {
             <DialogTrigger asChild>
               <Button data-testid="button-add-appointment">
                 <Plus className="h-4 w-4 mr-2" />
-                Новая запись
+                {t("new_appointment")}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md" data-testid="dialog-add-appointment">
               <DialogHeader>
-                <DialogTitle>Добавить новую запись</DialogTitle>
+                <DialogTitle>{t("new_appointment")}</DialogTitle>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -240,11 +242,11 @@ export default function Appointments() {
                     name="clientId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Клиент</FormLabel>
+                        <FormLabel>{t("client")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-appointment-client">
-                              <SelectValue placeholder="Выберите клиента" />
+                              <SelectValue placeholder={t("choose_client")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -264,11 +266,11 @@ export default function Appointments() {
                     name="serviceId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Услуга</FormLabel>
+                        <FormLabel>{t("service")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-appointment-service">
-                              <SelectValue placeholder="Выберите услугу" />
+                              <SelectValue placeholder={t("choose_service")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -288,11 +290,11 @@ export default function Appointments() {
                     name="employeeId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Мастер</FormLabel>
+                        <FormLabel>{t("master")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-appointment-employee">
-                              <SelectValue placeholder="Выберите мастера" />
+                              <SelectValue placeholder={t("choose_master")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -312,11 +314,11 @@ export default function Appointments() {
                     name="branchId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Филиал</FormLabel>
+                        <FormLabel>{t("branch")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-appointment-branch">
-                              <SelectValue placeholder="Выберите филиал" />
+                              <SelectValue placeholder={t("choose_branch")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -336,7 +338,7 @@ export default function Appointments() {
                     name="appointmentDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Дата и время</FormLabel>
+                        <FormLabel>{t("date_time")}</FormLabel>
                         <FormControl>
                           <Input
                             type="datetime-local"
@@ -374,14 +376,14 @@ export default function Appointments() {
                 onClick={() => setViewMode("day")}
                 data-testid="button-view-day"
               >
-                День
+                {t("view_day")}
               </Button>
               <Button
                 variant={viewMode === "week" ? "default" : "outline"}
                 onClick={() => setViewMode("week")}
                 data-testid="button-view-week"
               >
-                Неделя
+                {t("view_week")}
               </Button>
             </div>
             <div className="flex items-center space-x-2">
@@ -402,13 +404,13 @@ export default function Appointments() {
             <div className="lg:col-span-2">
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="bg-muted p-4 border-b border-border">
-                  <h4 className="font-medium">Расписание на день</h4>
+                  <h4 className="font-medium">{t("schedule_for_day")}</h4>
                 </div>
                 <div className="p-4">
                   {dayAppointments.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground" data-testid="no-appointments">
                       <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                      <p>Нет записей на выбранную дату</p>
+                      <p>{t("no_appointments_date")}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -457,7 +459,7 @@ export default function Appointments() {
             <div className="space-y-4">
               <Card>
                 <CardContent className="p-4">
-                  <h4 className="font-medium mb-3">Быстрые действия</h4>
+                  <h4 className="font-medium mb-3">{t("quick_actions")}</h4>
                   <div className="space-y-2">
                     <Button
                       variant="ghost"
@@ -466,11 +468,11 @@ export default function Appointments() {
                       data-testid="button-quick-add-appointment"
                     >
                       <Plus className="h-4 w-4 mr-2 text-primary" />
-                      Добавить запись
+                      {t("add_appointment")}
                     </Button>
                     <Button variant="ghost" className="w-full justify-start" data-testid="button-quick-view-week">
                       <CalendarIcon className="h-4 w-4 mr-2 text-accent" />
-                      Посмотреть неделю
+                      {t("see_week")}
                     </Button>
                   </div>
                 </CardContent>
@@ -478,28 +480,28 @@ export default function Appointments() {
 
               <Card>
                 <CardContent className="p-4">
-                  <h4 className="font-medium mb-3">Статистика дня</h4>
+                  <h4 className="font-medium mb-3">{t("day_stats")}</h4>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Всего записей</span>
+                      <span className="text-sm text-muted-foreground">{t("total_appointments_label")}</span>
                       <span className="text-sm font-medium" data-testid="text-stats-total-appointments">
                         {dayAppointments.length}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Выполнено</span>
+                      <span className="text-sm text-muted-foreground">{t("completed_label")}</span>
                       <span className="text-sm font-medium text-success" data-testid="text-stats-completed-appointments">
                         {dayAppointments.filter(apt => apt.status === "completed").length}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Предстоит</span>
+                      <span className="text-sm text-muted-foreground">{t("scheduled_label")}</span>
                       <span className="text-sm font-medium text-primary" data-testid="text-stats-scheduled-appointments">
                         {dayAppointments.filter(apt => apt.status === "scheduled").length}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Доход</span>
+                      <span className="text-sm text-muted-foreground">{t("revenue_label")}</span>
                       <span className="text-sm font-medium" data-testid="text-stats-day-revenue">
                         {formatPrice(
                           dayAppointments

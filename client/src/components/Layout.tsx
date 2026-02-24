@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   Bell,
   LogOut
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 const navigation = [
   { name: "Панель управления", href: "/", icon: LayoutDashboard, page: "dashboard" },
@@ -26,15 +27,15 @@ const navigation = [
   { name: "Филиалы", href: "/branches", icon: Building, page: "branches" },
 ];
 
-const pageMap: Record<string, string> = {
-  "/": "Панель управления",
-  "/clients": "Клиенты",
-  "/employees": "Сотрудники",
-  "/services": "Услуги",
-  "/appointments": "Записи",
-  "/finance": "Финансы",
-  "/inventory": "Склад",
-  "/branches": "Филиалы",
+const pageKeyMap: Record<string, string> = {
+  "/": "dashboard",
+  "/clients": "clients",
+  "/employees": "employees",
+  "/services": "services",
+  "/appointments": "appointments",
+  "/finance": "finance",
+  "/inventory": "inventory",
+  "/branches": "branches",
 };
 
 interface LayoutProps {
@@ -44,6 +45,22 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const user = auth.getUser();
+  const [expiringSoon, setExpiringSoon] = useState(false);
+  const { t, lang, setLang } = useI18n();
+
+  useEffect(() => {
+    const update = () => {
+      const remaining = auth.getSecondsUntilExpiry();
+      if (remaining === null) {
+        setExpiringSoon(false);
+        return;
+      }
+      setExpiringSoon(remaining <= 120);
+    };
+    update();
+    const id = setInterval(update, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleLogout = () => {
     auth.logout();
@@ -67,7 +84,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Scissors className="h-4 w-4 text-primary-foreground" />
             </div>
-            <h1 className="text-lg font-semibold">Салон CRM</h1>
+            <h1 className="text-lg font-semibold">{t("app_title")}</h1>
           </div>
         </div>
 
@@ -80,15 +97,24 @@ export default function Layout({ children }: LayoutProps) {
               return (
                 <li key={item.name}>
                   <Link href={item.href}>
-                    <a 
+                    <div 
                       className={`sidebar-item flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
                         isActive ? "active" : ""
                       }`}
                       data-testid={`nav-${item.page}`}
                     >
                       <Icon className="w-4 h-4" />
-                      <span>{item.name}</span>
-                    </a>
+                      <span>{
+                        item.page === "dashboard" ? t("dashboard") :
+                        item.page === "clients" ? t("clients") :
+                        item.page === "employees" ? t("employees") :
+                        item.page === "services" ? t("services") :
+                        item.page === "appointments" ? t("appointments") :
+                        item.page === "finance" ? t("finance") :
+                        item.page === "inventory" ? t("inventory") :
+                        item.page === "branches" ? t("branches") : item.name
+                      }</span>
+                    </div>
                   </Link>
                 </li>
               );
@@ -103,10 +129,24 @@ export default function Layout({ children }: LayoutProps) {
         <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6" data-testid="header">
           <div className="flex items-center space-x-4">
             <h2 className="text-lg font-semibold" data-testid="page-title">
-              {pageMap[location] || "Панель управления"}
+              {t(pageKeyMap[location] || "dashboard")}
             </h2>
+            {expiringSoon && (
+              <span className="text-xs px-2 py-1 rounded bg-amber-100 text-amber-800" data-testid="token-expiry-warning">
+                {t("session_expiring_soon")}
+              </span>
+            )}
           </div>
           <div className="flex items-center space-x-4">
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value as any)}
+              className="text-xs border rounded px-2 py-1 bg-background"
+              data-testid="lang-switcher"
+            >
+              <option value="ru">RU</option>
+              <option value="uz">UZ</option>
+            </select>
             <Button variant="ghost" size="icon" data-testid="notifications-button">
               <Bell className="h-4 w-4 text-muted-foreground" />
             </Button>
@@ -118,10 +158,10 @@ export default function Layout({ children }: LayoutProps) {
               </div>
               <div className="hidden md:block">
                 <p className="text-sm font-medium" data-testid="user-name">
-                  {user?.name || "Пользователь"}
+                  {user?.name || t("user")}
                 </p>
                 <p className="text-xs text-muted-foreground" data-testid="user-role">
-                  {user?.role === "admin" ? "Администратор" : "Пользователь"}
+                  {user?.role === "admin" ? t("admin") : t("user")}
                 </p>
               </div>
               <Button 

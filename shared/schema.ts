@@ -93,45 +93,98 @@ export const inventory = pgTable("inventory", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Refresh tokens table (for persistent allowlist)
+export const refreshTokens = pgTable("refresh_tokens", {
+  jti: varchar("jti").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  revokedAt: timestamp("revoked_at"),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertBranchSchema = createInsertSchema(branches).omit({
+export const insertBranchSchema = createInsertSchema(branches, {
+  name: z.string().trim().min(1, "name required"),
+  address: z.string().trim().min(1, "address required"),
+  phone: z.string().trim().optional(),
+}).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertClientSchema = createInsertSchema(clients).omit({
+export const insertClientSchema = createInsertSchema(clients, {
+  name: z.string().trim().min(1, "name required"),
+  phone: z.string().trim().min(1, "phone required"),
+  email: z.string().email().optional().or(z.literal("")).transform(v => v || undefined),
+}).omit({
   id: true,
   createdAt: true,
   totalVisits: true,
   lastVisit: true,
 });
 
-export const insertEmployeeSchema = createInsertSchema(employees).omit({
+export const insertEmployeeSchema = createInsertSchema(employees, {
+  name: z.string().trim().min(1, "name required"),
+  position: z.string().trim().min(1, "position required"),
+  phone: z.string().trim().optional(),
+}).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertServiceSchema = createInsertSchema(services).omit({
+export const insertServiceSchema = createInsertSchema(services, {
+  name: z.string().trim().min(1, "name required"),
+  description: z.string().trim().optional(),
+  duration: z.number().int().positive("duration must be > 0"),
+  price: z.string().regex(/^\d+(?:\.\d{1,2})?$/, "invalid price"),
+  category: z.string().trim().min(1, "category required"),
+  isActive: z.boolean().optional(),
+}).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({
+export const insertAppointmentSchema = createInsertSchema(appointments, {
+  appointmentDate: z.coerce.date(),
+  status: z.enum(["scheduled", "completed", "cancelled"]).default("scheduled"),
+}).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertPaymentSchema = createInsertSchema(payments).omit({
+export const insertPaymentSchema = createInsertSchema(payments, {
+  amount: z.string().regex(/^\d+(?:\.\d{1,2})?$/, "invalid amount"),
+  paymentMethod: z.enum(["cash", "card", "online"]).default("card"),
+  status: z.enum(["completed", "pending", "failed"]).default("completed"),
+}).omit({
   id: true,
   createdAt: true,
+}).superRefine((val, ctx) => {
+  if (val.status === "completed" && !val.appointmentId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["appointmentId"],
+      message: "appointmentId required when status is completed",
+    });
+  }
 });
 
-export const insertInventorySchema = createInsertSchema(inventory).omit({
+const allowedUnits = [
+  "шт", "мл", "л", "г", "кг", "упаковка", "тюбик", "флакон",
+] as const;
+
+export const insertInventorySchema = createInsertSchema(inventory, {
+  name: z.string().trim().min(1, "name required"),
+  quantity: z.number().int().nonnegative(),
+  unit: z.enum(allowedUnits),
+  minQuantity: z.number().int().nonnegative().optional().default(0),
+  branchId: z.string().trim().optional().nullable(),
+}).omit({
   id: true,
   createdAt: true,
 });
@@ -160,3 +213,4 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Inventory = typeof inventory.$inferSelect;
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
 export type LoginData = z.infer<typeof loginSchema>;
+export type RefreshTokenRow = typeof refreshTokens.$inferSelect;

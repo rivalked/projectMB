@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, Calendar, DollarSign, TrendingUp, Clock } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 const mockChartData = [
   { name: "Пн", revenue: 45000 },
@@ -23,6 +24,7 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
+  const { t } = useI18n();
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
     queryFn: async () => {
@@ -63,7 +65,7 @@ export default function Dashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Всего клиентов</p>
+                <p className="text-sm text-muted-foreground">{t("total_clients")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-total-clients">
                   {stats?.totalClients.toLocaleString() || 0}
                 </p>
@@ -83,7 +85,7 @@ export default function Dashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Записи сегодня</p>
+                <p className="text-sm text-muted-foreground">{t("today_appointments")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-today-appointments">
                   {stats?.todayAppointments || 0}
                 </p>
@@ -103,9 +105,9 @@ export default function Dashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Выручка за неделю</p>
+                <p className="text-sm text-muted-foreground">{t("weekly_revenue")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-weekly-revenue">
-                  {stats ? formatCurrency(stats.weeklyRevenue) : "₽0"}
+                  {stats ? formatCurrency(stats.weeklyRevenue) : "0"}
                 </p>
               </div>
               <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
@@ -123,7 +125,7 @@ export default function Dashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Загруженность</p>
+                <p className="text-sm text-muted-foreground">{t("staff_utilization")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-staff-utilization">
                   {stats?.staffUtilization || 0}%
                 </p>
@@ -143,7 +145,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card data-testid="revenue-chart">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Динамика дохода</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("revenue_trend")}</h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={mockChartData}>
@@ -163,7 +165,7 @@ export default function Dashboard() {
         <Card data-testid="upcoming-appointments">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Ближайшие записи</h3>
+              <h3 className="text-lg font-semibold">{t("upcoming_appointments")}</h3>
               <Button variant="outline" size="sm" data-testid="button-view-all-appointments">
                 Все записи
               </Button>
@@ -174,10 +176,8 @@ export default function Dashboard() {
                   <Clock className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-sm">Следующая запись</p>
-                  <p className="text-sm text-muted-foreground">
-                    Нет записей на сегодня
-                  </p>
+                  <p className="font-medium text-sm">{t("upcoming_appointments")}</p>
+                  <p className="text-sm text-muted-foreground">{t("no_appointments_today")}</p>
                 </div>
               </div>
             </div>

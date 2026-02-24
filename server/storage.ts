@@ -353,4 +353,16 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { DBStorage } from "./storage-db";
+
+function createStorage() {
+  if (process.env.DATABASE_URL) {
+    const dbStore = new DBStorage();
+    // fire-and-forget seed
+    void dbStore.seed();
+    return dbStore as IStorage;
+  }
+  return new MemStorage();
+}
+
+export const storage = createStorage();

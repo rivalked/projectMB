@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/auth";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -27,6 +29,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
           setLocation("/login", { replace: true });
         }
       } catch (error) {
+        toast({ variant: "destructive", title: "Сессия истекла", description: "Пожалуйста, войдите снова" });
         setLocation("/login", { replace: true });
       } finally {
         setIsLoading(false);

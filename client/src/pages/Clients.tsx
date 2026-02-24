@@ -14,8 +14,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertClientSchema, type Client, type InsertClient } from "@shared/schema";
 import { Plus, Search, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 
 export default function Clients() {
+  const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -53,6 +55,18 @@ export default function Clients() {
       });
     },
     onError: (error: any) => {
+      // Try to map Zod field errors to the form when possible
+      const msg = String(error?.message || "");
+      const parts = msg.split("; ");
+      const fieldErrors = parts
+        .map((p) => p.split(": "))
+        .filter((arr) => arr.length === 2) as [string, string][];
+      fieldErrors.forEach(([path, message]) => {
+        const name = path as keyof InsertClient;
+        if (name && form.getFieldState(name)) {
+          form.setError(name as any, { message });
+        }
+      });
       toast({
         variant: "destructive",
         title: "Ошибка",
@@ -99,18 +113,19 @@ export default function Clients() {
   return (
     <div className="p-6" data-testid="clients-page">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Клиенты</h2>
+        <h2 className="text-2xl font-bold">{t("title_clients")}</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-client">
               <Plus className="h-4 w-4 mr-2" />
-              Добавить клиента
+              {t("add_client")}
             </Button>
           </DialogTrigger>
-          <DialogContent data-testid="dialog-add-client">
+          <DialogContent data-testid="dialog-add-client" aria-describedby="add-client-desc">
             <DialogHeader>
-              <DialogTitle>Добавить нового клиента</DialogTitle>
+              <DialogTitle>{t("add_client")}</DialogTitle>
             </DialogHeader>
+            <p id="add-client-desc" className="text-sm text-muted-foreground">Заполните данные клиента. Поля имя и телефон обязательны.</p>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -118,7 +133,7 @@ export default function Clients() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Имя</FormLabel>
+                      <FormLabel>{t("client_name")}</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="Введите имя клиента" data-testid="input-client-name" />
                       </FormControl>
@@ -131,7 +146,7 @@ export default function Clients() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Телефон</FormLabel>
+                      <FormLabel>{t("client_phone")}</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="+7 (999) 123-45-67" data-testid="input-client-phone" />
                       </FormControl>
@@ -144,7 +159,7 @@ export default function Clients() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email (необязательно)</FormLabel>
+                      <FormLabel>{t("client_email_optional")}</FormLabel>
                       <FormControl>
                         <Input {...field} value={field.value || ""} placeholder="email@example.com" data-testid="input-client-email" />
                       </FormControl>
@@ -154,10 +169,10 @@ export default function Clients() {
                 />
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Отмена
+                    {t("cancel")}
                   </Button>
                   <Button type="submit" disabled={addClientMutation.isPending} data-testid="button-save-client">
-                    {addClientMutation.isPending ? "Сохранение..." : "Сохранить"}
+                    {addClientMutation.isPending ? "Сохранение..." : t("save")}
                   </Button>
                 </div>
               </form>
@@ -172,7 +187,7 @@ export default function Clients() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Поиск по имени или телефону..."
+                placeholder={t("search_clients_placeholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -180,7 +195,7 @@ export default function Clients() {
               />
             </div>
             <Button variant="outline" size="sm">
-              Фильтры
+              {t("filters")}
             </Button>
           </div>
 
@@ -188,11 +203,11 @@ export default function Clients() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Имя</TableHead>
-                  <TableHead>Телефон</TableHead>
-                  <TableHead>Посещений</TableHead>
-                  <TableHead>Последняя услуга</TableHead>
-                  <TableHead>Баланс бонусов</TableHead>
+                  <TableHead>{t("table_name")}</TableHead>
+                  <TableHead>{t("table_phone")}</TableHead>
+                  <TableHead>{t("table_visits")}</TableHead>
+                  <TableHead>{t("table_last_service")}</TableHead>
+                  <TableHead>{t("table_bonus_balance")}</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -200,7 +215,7 @@ export default function Clients() {
                 {filteredClients.length === 0 ? (
                   <TableRow data-testid="no-clients-row">
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      {searchTerm ? "Клиенты не найдены" : "Нет зарегистрированных клиентов"}
+                      {searchTerm ? t("not_found") : t("no_clients")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -229,7 +244,7 @@ export default function Clients() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="bg-success/10 text-success" data-testid={`text-client-bonus-${client.id}`}>
-                          {client.bonusPoints || 0} ₽
+                          {client.bonusPoints || 0} 
                         </Badge>
                       </TableCell>
                       <TableCell>

@@ -21,6 +21,7 @@ import {
 } from "@shared/schema";
 import { Plus, Search, Edit, Trash2, Package, AlertTriangle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 
 const unitOptions = [
   "шт",
@@ -34,6 +35,7 @@ const unitOptions = [
 ];
 
 export default function Inventory() {
+  const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
@@ -60,9 +62,9 @@ export default function Inventory() {
     defaultValues: {
       name: "",
       quantity: 0,
-      unit: "",
+      unit: unitOptions[0],
       minQuantity: 0,
-      branchId: "",
+      branchId: "general",
     },
   });
 
@@ -76,15 +78,15 @@ export default function Inventory() {
       setIsAddDialogOpen(false);
       form.reset();
       toast({
-        title: "Материал добавлен",
-        description: "Новый материал успешно добавлен на склад",
+        title: t("inventory_added_title") || "Материал добавлен",
+        description: t("inventory_added_desc") || "Новый материал успешно добавлен на склад",
       });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: error.message || "Не удалось добавить материал",
+        title: t("error"),
+        description: error.message || t("inventory_add_failed") || "Не удалось добавить материал",
       });
     },
   });
@@ -96,42 +98,53 @@ export default function Inventory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       toast({
-        title: "Материал удален",
-        description: "Материал успешно удален со склада",
+        title: t("inventory_deleted_title") || "Материал удален",
+        description: t("inventory_deleted_desc") || "Материал успешно удален со склада",
       });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: error.message || "Не удалось удалить материал",
+        title: t("error"),
+        description: error.message || t("inventory_delete_failed") || "Не удалось удалить материал",
       });
     },
   });
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesBranch = selectedBranch === "all" || item.branchId === selectedBranch;
+    // Фильтрация
+    const matchesBranch =
+    selectedBranch === "all" ||
+    (selectedBranch === "general" && !item.branchId) ||
+    item.branchId === selectedBranch;
     return matchesSearch && matchesBranch;
   });
 
   const lowStockItems = inventory.filter(item => item.quantity <= (item.minQuantity || 0));
 
   const onSubmit = (data: InsertInventory) => {
-    addInventoryMutation.mutate(data);
+    const payload: any = {
+      ...data,
+      branchId: data.branchId === "general" ? undefined : data.branchId,
+    };
+    addInventoryMutation.mutate(payload);
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Вы уверены, что хотите удалить этот материал?")) {
+    if (confirm(t("confirm_delete_inventory") || "Вы уверены, что хотите удалить этот материал?")) {
       deleteInventoryMutation.mutate(id);
     }
   };
 
+// Отображение имени филиала
   const getBranchName = (branchId: string | null) => {
-    if (!branchId) return "Общий склад";
-    const branch = branches.find(b => b.id === branchId);
-    return branch?.name || "Неизвестный филиал";
+    if (!branchId) return t("general_stock");
+    if (branchId === "general") return t("general_stock");
+    const branch = branches.find((b) => b.id === branchId);
+    return branch?.name || t("unknown_branch");
   };
+
 
   const getStockStatus = (item: Inventory) => {
     if (item.quantity === 0) return "out";
@@ -142,11 +155,11 @@ export default function Inventory() {
   const getStockStatusBadge = (status: string) => {
     switch (status) {
       case "out":
-        return <Badge variant="destructive" className="text-xs">Закончилось</Badge>;
+        return <Badge variant="destructive" className="text-xs">{t("out_of_stock")}</Badge>;
       case "low":
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs">Мало</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs">{t("low_stock")}</Badge>;
       case "good":
-        return <Badge variant="default" className="bg-success text-success-foreground text-xs">В наличии</Badge>;
+        return <Badge variant="default" className="bg-success text-success-foreground text-xs">{t("in_stock")}</Badge>;
       default:
         return null;
     }
@@ -172,18 +185,19 @@ export default function Inventory() {
   return (
     <div className="p-6" data-testid="inventory-page">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Склад</h2>
+        <h2 className="text-2xl font-bold">{t("title_inventory")}</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-inventory">
               <Plus className="h-4 w-4 mr-2" />
-              Добавить материал
+              {t("add_material")}
             </Button>
           </DialogTrigger>
-          <DialogContent data-testid="dialog-add-inventory">
+          <DialogContent data-testid="dialog-add-inventory" aria-describedby="add-inventory-desc">
             <DialogHeader>
-              <DialogTitle>Добавить новый материал</DialogTitle>
+              <DialogTitle>{t("add_new_material")}</DialogTitle>
             </DialogHeader>
+            <p id="add-inventory-desc" className="text-sm text-muted-foreground">{t("add_new_material")}</p>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -191,7 +205,7 @@ export default function Inventory() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Название материала</FormLabel>
+                      <FormLabel>{t("mat_name")}</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="Введите название материала" data-testid="input-inventory-name" />
                       </FormControl>
@@ -205,7 +219,7 @@ export default function Inventory() {
                     name="quantity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Количество</FormLabel>
+                        <FormLabel>{t("quantity")}</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -224,11 +238,11 @@ export default function Inventory() {
                     name="unit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Единица измерения</FormLabel>
+                        <FormLabel>{t("unit")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-inventory-unit">
-                              <SelectValue placeholder="Выберите единицу" />
+                            <SelectValue placeholder={t("choose_unit")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -249,7 +263,7 @@ export default function Inventory() {
                   name="minQuantity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Минимальное количество</FormLabel>
+                      <FormLabel>{t("min_quantity")}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -268,15 +282,15 @@ export default function Inventory() {
                   name="branchId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Филиал</FormLabel>
+                      <FormLabel>{t("branch")}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-inventory-branch">
-                            <SelectValue placeholder="Выберите филиал" />
+                            <SelectValue placeholder={t("choose_branch")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Общий склад</SelectItem>
+                <SelectItem value="general">{t("general_stock")}</SelectItem>
                           {branches.map((branch) => (
                             <SelectItem key={branch.id} value={branch.id}>
                               {branch.name}
@@ -289,11 +303,11 @@ export default function Inventory() {
                   )}
                 />
                 <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Отмена
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  {t("cancel")}
                   </Button>
-                  <Button type="submit" disabled={addInventoryMutation.isPending} data-testid="button-save-inventory">
-                    {addInventoryMutation.isPending ? "Сохранение..." : "Сохранить"}
+                <Button type="submit" disabled={addInventoryMutation.isPending} data-testid="button-save-inventory">
+                  {addInventoryMutation.isPending ? "Сохранение..." : t("save")}
                   </Button>
                 </div>
               </form>
@@ -320,7 +334,7 @@ export default function Inventory() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Всего материалов</p>
+                <p className="text-sm text-muted-foreground">{t("total_items")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-total-items">
                   {inventory.length}
                 </p>
@@ -336,7 +350,7 @@ export default function Inventory() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Низкий остаток</p>
+                <p className="text-sm text-muted-foreground">{t("low_stock")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-low-stock-count">
                   {lowStockItems.length}
                 </p>
@@ -352,7 +366,7 @@ export default function Inventory() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Закончилось</p>
+                <p className="text-sm text-muted-foreground">{t("out_of_stock")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-out-of-stock-count">
                   {inventory.filter(item => item.quantity === 0).length}
                 </p>
@@ -368,7 +382,7 @@ export default function Inventory() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">В наличии</p>
+                <p className="text-sm text-muted-foreground">{t("in_stock")}</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="text-in-stock-count">
                   {inventory.filter(item => item.quantity > item.minQuantity).length}
                 </p>
@@ -387,7 +401,7 @@ export default function Inventory() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Поиск материалов..."
+                placeholder={t("search_inventory_placeholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -396,11 +410,11 @@ export default function Inventory() {
             </div>
             <Select value={selectedBranch} onValueChange={setSelectedBranch}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Все филиалы" />
+              <SelectValue placeholder={t("all_branches")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Все филиалы</SelectItem>
-                <SelectItem value="">Общий склад</SelectItem>
+                <SelectItem value="all">{t("all_branches")}</SelectItem>
+                <SelectItem value="general">{t("general_stock")}</SelectItem>
                 {branches.map((branch) => (
                   <SelectItem key={branch.id} value={branch.id}>
                     {branch.name}
@@ -414,11 +428,11 @@ export default function Inventory() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Название</TableHead>
-                  <TableHead>Количество</TableHead>
-                  <TableHead>Минимум</TableHead>
-                  <TableHead>Филиал</TableHead>
-                  <TableHead>Статус</TableHead>
+                  <TableHead>{t("mat_name")}</TableHead>
+                  <TableHead>{t("quantity")}</TableHead>
+                  <TableHead>{t("min_quantity")}</TableHead>
+                  <TableHead>{t("branch")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
                   <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -426,7 +440,7 @@ export default function Inventory() {
                 {filteredInventory.length === 0 ? (
                   <TableRow data-testid="no-inventory-row">
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      {searchTerm ? "Материалы не найдены" : "Нет добавленных материалов"}
+                      {searchTerm ? t("inventory_not_found") : t("no_inventory")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -480,7 +494,7 @@ export default function Inventory() {
           {filteredInventory.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground" data-testid="text-pagination-info">
-                Показано {filteredInventory.length} из {inventory.length} материалов
+                {filteredInventory.length} / {inventory.length}
               </p>
             </div>
           )}

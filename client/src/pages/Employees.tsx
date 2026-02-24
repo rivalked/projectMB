@@ -15,8 +15,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertEmployeeSchema, type Employee, type InsertEmployee, type Branch } from "@shared/schema";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 
 export default function Employees() {
+  const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -136,17 +138,17 @@ export default function Employees() {
   return (
     <div className="p-6" data-testid="employees-page">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Сотрудники</h2>
+        <h2 className="text-2xl font-bold">{t("title_employees")}</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-employee">
               <Plus className="h-4 w-4 mr-2" />
-              Добавить сотрудника
+              {t("add_employee")}
             </Button>
           </DialogTrigger>
           <DialogContent data-testid="dialog-add-employee">
             <DialogHeader>
-              <DialogTitle>Добавить нового сотрудника</DialogTitle>
+              <DialogTitle>{t("add_employee")}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -155,7 +157,7 @@ export default function Employees() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Имя</FormLabel>
+                      <FormLabel>{t("employee_name")}</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="Введите имя сотрудника" data-testid="input-employee-name" />
                       </FormControl>
@@ -168,7 +170,7 @@ export default function Employees() {
                   name="position"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Должность</FormLabel>
+                      <FormLabel>{t("employee_position")}</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="Мастер, администратор..." data-testid="input-employee-position" />
                       </FormControl>
@@ -181,7 +183,7 @@ export default function Employees() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Телефон</FormLabel>
+                      <FormLabel>{t("employee_phone")}</FormLabel>
                       <FormControl>
                         <Input {...field} value={field.value || ""} placeholder="+7 (999) 123-45-67" data-testid="input-employee-phone" />
                       </FormControl>
@@ -194,7 +196,7 @@ export default function Employees() {
                   name="branchId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Филиал</FormLabel>
+                      <FormLabel>{t("employee_branch")}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-employee-branch">
@@ -215,10 +217,10 @@ export default function Employees() {
                 />
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Отмена
+                    {t("cancel")}
                   </Button>
                   <Button type="submit" disabled={addEmployeeMutation.isPending} data-testid="button-save-employee">
-                    {addEmployeeMutation.isPending ? "Сохранение..." : "Сохранить"}
+                    {addEmployeeMutation.isPending ? "Сохранение..." : t("save")}
                   </Button>
                 </div>
               </form>
@@ -233,7 +235,7 @@ export default function Employees() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Поиск по имени или должности..."
+                placeholder={t("search_employees_placeholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -241,7 +243,7 @@ export default function Employees() {
               />
             </div>
             <Button variant="outline" size="sm">
-              Фильтры
+              {t("filters")}
             </Button>
           </div>
 
@@ -249,11 +251,11 @@ export default function Employees() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Имя</TableHead>
-                  <TableHead>Должность</TableHead>
-                  <TableHead>Филиал</TableHead>
-                  <TableHead>Загруженность</TableHead>
-                  <TableHead>Статус</TableHead>
+                  <TableHead>{t("employee_name")}</TableHead>
+                  <TableHead>{t("employee_position")}</TableHead>
+                  <TableHead>{t("employee_branch")}</TableHead>
+                  <TableHead>{t("staff_utilization")}</TableHead>
+                  <TableHead>{t("employee_status")}</TableHead>
                   <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -261,7 +263,7 @@ export default function Employees() {
                 {filteredEmployees.length === 0 ? (
                   <TableRow data-testid="no-employees-row">
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      {searchTerm ? "Сотрудники не найдены" : "Нет зарегистрированных сотрудников"}
+                      {searchTerm ? t("employees_not_found") : t("no_employees")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -302,7 +304,7 @@ export default function Employees() {
                             className={employee.isActive ? "bg-success text-success-foreground" : ""}
                             data-testid={`badge-employee-status-${employee.id}`}
                           >
-                            {employee.isActive ? "Активен" : "Неактивен"}
+                            {employee.isActive ? t("active") : t("inactive")}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -332,7 +334,7 @@ export default function Employees() {
           {filteredEmployees.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground" data-testid="text-pagination-info">
-                Показано {filteredEmployees.length} из {employees.length} сотрудников
+                {filteredEmployees.length} / {employees.length}
               </p>
             </div>
           )}

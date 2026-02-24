@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertServiceSchema, type Service, type InsertService } from "@shared/schema";
 import { Plus, Search, Edit, Trash2, Clock, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 
 const serviceCategories = [
   "Стрижки",
@@ -26,6 +27,7 @@ const serviceCategories = [
 ];
 
 export default function Services() {
+  const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -149,17 +151,17 @@ export default function Services() {
   return (
     <div className="p-6" data-testid="services-page">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Услуги</h2>
+        <h2 className="text-2xl font-bold">{t("title_services")}</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-service">
               <Plus className="h-4 w-4 mr-2" />
-              Добавить услугу
+              {t("add_service")}
             </Button>
           </DialogTrigger>
           <DialogContent data-testid="dialog-add-service">
             <DialogHeader>
-              <DialogTitle>Добавить новую услугу</DialogTitle>
+              <DialogTitle>{t("add_service")}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -168,7 +170,7 @@ export default function Services() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Название услуги</FormLabel>
+                      <FormLabel>{t("service_name")}</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="Введите название услуги" data-testid="input-service-name" />
                       </FormControl>
@@ -181,7 +183,7 @@ export default function Services() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Описание</FormLabel>
+                      <FormLabel>{t("description")}</FormLabel>
                       <FormControl>
                         <Textarea {...field} value={field.value || ""} placeholder="Описание услуги" data-testid="input-service-description" />
                       </FormControl>
@@ -195,7 +197,7 @@ export default function Services() {
                     name="duration"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Длительность (минуты)</FormLabel>
+                        <FormLabel>{t("duration_minutes")}</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -214,7 +216,7 @@ export default function Services() {
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Цена (₽)</FormLabel>
+                        <FormLabel>{t("price_rub")}</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="2500" data-testid="input-service-price" />
                         </FormControl>
@@ -228,11 +230,11 @@ export default function Services() {
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Категория</FormLabel>
+                      <FormLabel>{t("category")}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-service-category">
-                            <SelectValue placeholder="Выберите категорию" />
+                          <SelectValue placeholder={t("category")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -266,7 +268,7 @@ export default function Services() {
         <div className="space-y-4">
           <Card>
             <CardContent className="p-4">
-              <h3 className="font-semibold mb-3">Категории услуг</h3>
+              <h3 className="font-semibold mb-3">{t("categories")}</h3>
               <div className="space-y-2">
                 <Button
                   variant={selectedCategory === "all" ? "default" : "ghost"}
@@ -274,7 +276,7 @@ export default function Services() {
                   onClick={() => setSelectedCategory("all")}
                   data-testid="category-all"
                 >
-                  Все услуги
+                  {t("all_services")}
                 </Button>
                 {serviceCategories.map((category) => (
                   <Button
@@ -300,7 +302,7 @@ export default function Services() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Поиск услуг..."
+                    placeholder={t("search_services_placeholder")}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -313,8 +315,8 @@ export default function Services() {
                 {filteredServices.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground" data-testid="no-services">
                     {searchTerm || selectedCategory !== "all" 
-                      ? "Услуги не найдены" 
-                      : "Нет добавленных услуг"}
+                      ? t("services_not_found") 
+                      : t("no_services")}
                   </div>
                 ) : (
                   filteredServices.map((service) => (
