@@ -12,9 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Badge } from "@/components/ui/badge";
-import { 
-  insertAppointmentSchema, 
-  type Appointment, 
+import {
+  insertAppointmentSchema,
+  type Appointment,
   type InsertAppointment,
   type Client,
   type Employee,
@@ -23,9 +23,10 @@ import {
 } from "@shared/schema";
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, User, Scissors } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO, startOfDay, endOfDay, addDays, subDays } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay, addDays, subDays, setHours, setMinutes } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useI18n } from "@/lib/i18n";
+import { motion, type PanInfo } from "framer-motion";
 
 export default function Appointments() {
   const { t } = useI18n();
@@ -116,6 +117,55 @@ export default function Appointments() {
     addAppointmentMutation.mutate(data);
   };
 
+  const updateAppointmentTimeMutation = useMutation({
+    mutationFn: async ({ id, newDate }: { id: string, newDate: Date }) => {
+      const response = await authenticatedApiRequest("PUT", `/api/appointments/${id}`, {
+        appointmentDate: newDate.toISOString(),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      toast({
+        title: "Время обновлено",
+        description: "Время записи было успешно изменено",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить время записи",
+      });
+    }
+  });
+
+  const handleDragEnd = (appointment: Appointment, info: PanInfo) => {
+    const aptDate = parseISO(appointment.appointmentDate.toString());
+    const originalHours = aptDate.getHours();
+    const originalMinutes = aptDate.getMinutes();
+
+    // Timeline starts at 9:00, 1 hour = 60px
+    const originalTop = (originalHours - 9) * 60 + originalMinutes;
+    const newTop = originalTop + info.offset.y;
+
+    // Calculate new time (snap to 15 min intervals is nice, but we'll do raw minutes for now or snap to 30)
+    let newTotalMinutes = Math.max(0, Math.round(newTop));
+    // Snap to nearest 15 minutes (15px)
+    newTotalMinutes = Math.round(newTotalMinutes / 15) * 15;
+
+    const newHours = Math.floor(newTotalMinutes / 60) + 9;
+    const newMins = newTotalMinutes % 60;
+
+    if (newHours >= 9 && newHours <= 20) {
+      const newDate = setMinutes(setHours(aptDate, newHours), newMins);
+      // Only mutate if time changed
+      if (newHours !== originalHours || newMins !== originalMinutes) {
+        updateAppointmentTimeMutation.mutate({ id: appointment.id, newDate });
+      }
+    }
+  };
+
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     return client?.name || "Неизвестный клиент";
@@ -144,7 +194,7 @@ export default function Appointments() {
   const getDayAppointments = () => {
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
-    
+
     return appointments.filter(apt => {
       const aptDate = parseISO(apt.appointmentDate.toString());
       const dateMatch = aptDate >= start && aptDate <= end;
@@ -159,9 +209,9 @@ export default function Appointments() {
   };
 
   const formatPrice = (price: string) => {
-    return new Intl.NumberFormat("ru-RU", {
+    return new Intl.NumberFormat("uz-UZ", {
       style: "currency",
-      currency: "RUB",
+      currency: "UZS",
       minimumFractionDigits: 0,
     }).format(parseFloat(price));
   };
@@ -406,51 +456,75 @@ export default function Appointments() {
                 <div className="bg-muted p-4 border-b border-border">
                   <h4 className="font-medium">{t("schedule_for_day")}</h4>
                 </div>
-                <div className="p-4">
-                  {dayAppointments.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground" data-testid="no-appointments">
-                      <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                      <p>{t("no_appointments_date")}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {dayAppointments.map((appointment) => (
-                        <div
-                          key={appointment.id}
-                          className="flex items-center space-x-4 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                          data-testid={`appointment-item-${appointment.id}`}
-                        >
-                          <div className="w-16 text-center">
-                            <span className="text-sm font-medium" data-testid={`text-appointment-time-${appointment.id}`}>
-                              {format(parseISO(appointment.appointmentDate.toString()), "HH:mm")}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm" data-testid={`text-appointment-client-${appointment.id}`}>
-                              {getClientName(appointment.clientId)}
-                            </p>
-                            <p className="text-sm text-muted-foreground" data-testid={`text-appointment-service-${appointment.id}`}>
-                              {getServiceName(appointment.serviceId)}
-                            </p>
-                          </div>
-                          <div className="text-sm text-muted-foreground" data-testid={`text-appointment-employee-${appointment.id}`}>
-                            {getEmployeeName(appointment.employeeId)}
-                          </div>
-                          <div className="text-sm font-medium" data-testid={`text-appointment-price-${appointment.id}`}>
-                            {formatPrice(getServicePrice(appointment.serviceId))}
-                          </div>
-                          <Badge
-                            variant={appointment.status === "completed" ? "default" : "secondary"}
-                            className={appointment.status === "completed" ? "bg-success text-success-foreground" : ""}
-                            data-testid={`badge-appointment-status-${appointment.id}`}
+                <div className="p-4 pl-16 relative overflow-y-auto h-[600px] w-full" style={{ scrollbarWidth: 'thin' }}>
+                  {/* Timeline grid (9:00 to 20:00) */}
+                  <div className="absolute inset-0 pl-16 pt-4 pointer-events-none">
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <div key={i} className="relative w-full border-t border-border/40 h-[60px]">
+                        <span className="absolute -left-14 -top-3 text-xs text-muted-foreground font-medium w-10 text-right">
+                          {i + 9}:00
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Appointments */}
+                  <div className="relative w-full h-[720px] pt-4">
+                    {dayAppointments.length === 0 ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground" data-testid="no-appointments">
+                        <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                        <p>{t("no_appointments_date")}</p>
+                      </div>
+                    ) : (
+                      dayAppointments.map((appointment) => {
+                        const aptDate = parseISO(appointment.appointmentDate.toString());
+                        const hours = aptDate.getHours();
+                        const minutes = aptDate.getMinutes();
+                        // Bound between 9 and 20
+                        const safeHours = Math.max(9, Math.min(20, hours));
+                        const topOffset = (safeHours - 9) * 60 + minutes;
+
+                        return (
+                          <motion.div
+                            key={appointment.id}
+                            drag="y"
+                            dragConstraints={{ top: 0, bottom: 11 * 60 }}
+                            dragMomentum={false}
+                            onDragEnd={(_, info) => handleDragEnd(appointment, info)}
+                            className="absolute left-2 right-4 bg-card/90 backdrop-blur-md border border-primary/20 shadow-sm rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors z-10"
+                            style={{ top: topOffset, minHeight: '55px' }}
+                            data-testid={`appointment-item-${appointment.id}`}
+                            whileHover={{ scale: 1.01, zIndex: 20 }}
+                            whileDrag={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)", zIndex: 50, opacity: 0.9 }}
                           >
-                            {appointment.status === "scheduled" ? "Запланировано" : 
-                             appointment.status === "completed" ? "Выполнено" : "Отменено"}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h5 className="font-semibold text-sm h-5" style={{ display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                  {getClientName(appointment.clientId)}
+                                </h5>
+                                <p className="text-xs text-muted-foreground flex items-center mt-1">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {format(aptDate, "HH:mm")} • {getEmployeeName(appointment.employeeId)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <Badge
+                                  variant={appointment.status === "completed" ? "default" : "secondary"}
+                                  className={`text-[10px] py-0 h-4 ${appointment.status === "completed" ? "bg-success text-success-foreground" : ""}`}
+                                >
+                                  {appointment.status === "scheduled" ? "План" :
+                                    appointment.status === "completed" ? "Успешно" : "Отмена"}
+                                </Badge>
+                                <p className="text-xs font-medium text-primary mt-1">
+                                  {getServiceName(appointment.serviceId)}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

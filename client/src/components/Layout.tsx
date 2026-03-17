@@ -2,33 +2,41 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Bus, 
-  Scissors, 
-  Calendar, 
-  ChartPie, 
-  Package, 
+import {
+  LayoutDashboard,
+  Users,
+  Bus,
+  Scissors,
+  Calendar,
+  ChartPie,
+  Package,
   Building,
   Bell,
-  LogOut
+  LogOut,
+  ShieldAlert,
+  Activity,
+  MapPin,
+  Settings as SettingsIcon,
+  ShieldCheck
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 const navigation = [
-  { name: "Панель управления", href: "/", icon: LayoutDashboard, page: "dashboard" },
+  { name: "Панель управления", href: "/dashboard", icon: LayoutDashboard, page: "dashboard" },
+  { name: "Super Админ", href: "/super-admin", icon: ShieldAlert, page: "super_admin" },
   { name: "Клиенты", href: "/clients", icon: Users, page: "clients" },
   { name: "Сотрудники", href: "/employees", icon: Bus, page: "employees" },
   { name: "Услуги", href: "/services", icon: Scissors, page: "services" },
   { name: "Записи", href: "/appointments", icon: Calendar, page: "appointments" },
-  { name: "Финансы", href: "/finance", icon: ChartPie, page: "finance" },
+  { name: "Финансы", href: "/finance", icon: Activity, page: "finance" },
   { name: "Склад", href: "/inventory", icon: Package, page: "inventory" },
-  { name: "Филиалы", href: "/branches", icon: Building, page: "branches" },
+  { name: "Филиалы", href: "/branches", icon: MapPin, page: "branches" },
+  { name: "Настройки", href: "/settings", icon: SettingsIcon, page: "settings" },
 ];
 
 const pageKeyMap: Record<string, string> = {
-  "/": "dashboard",
+  "/dashboard": "dashboard",
+  "/super-admin": "super_admin",
   "/clients": "clients",
   "/employees": "employees",
   "/services": "services",
@@ -36,6 +44,7 @@ const pageKeyMap: Record<string, string> = {
   "/finance": "finance",
   "/inventory": "inventory",
   "/branches": "branches",
+  "/settings": "settings"
 };
 
 interface LayoutProps {
@@ -91,28 +100,30 @@ export default function Layout({ children }: LayoutProps) {
         <nav className="flex-1 p-4">
           <ul className="space-y-1">
             {navigation.map((item) => {
+              if (item.page === "super_admin" && user?.role !== "super_admin") return null;
+
               const Icon = item.icon;
               const isActive = location === item.href;
-              
+
               return (
                 <li key={item.name}>
                   <Link href={item.href}>
-                    <div 
-                      className={`sidebar-item flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive ? "active" : ""
-                      }`}
+                    <div
+                      className={`sidebar-item flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium ${isActive ? "active" : ""
+                        }`}
                       data-testid={`nav-${item.page}`}
                     >
                       <Icon className="w-4 h-4" />
                       <span>{
                         item.page === "dashboard" ? t("dashboard") :
-                        item.page === "clients" ? t("clients") :
-                        item.page === "employees" ? t("employees") :
-                        item.page === "services" ? t("services") :
-                        item.page === "appointments" ? t("appointments") :
-                        item.page === "finance" ? t("finance") :
-                        item.page === "inventory" ? t("inventory") :
-                        item.page === "branches" ? t("branches") : item.name
+                          item.page === "super_admin" ? (t as any)("super_admin") :
+                            item.page === "clients" ? t("clients") :
+                              item.page === "employees" ? t("employees") :
+                                item.page === "services" ? t("services") :
+                                  item.page === "appointments" ? t("appointments") :
+                                    item.page === "finance" ? t("finance") :
+                                      item.page === "inventory" ? t("inventory") :
+                                        item.page === "branches" ? t("branches") : item.name
                       }</span>
                     </div>
                   </Link>
@@ -129,7 +140,7 @@ export default function Layout({ children }: LayoutProps) {
         <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6" data-testid="header">
           <div className="flex items-center space-x-4">
             <h2 className="text-lg font-semibold" data-testid="page-title">
-              {t(pageKeyMap[location] || "dashboard")}
+              {t((pageKeyMap[location] as any) || "dashboard")}
             </h2>
             {expiringSoon && (
               <span className="text-xs px-2 py-1 rounded bg-amber-100 text-amber-800" data-testid="token-expiry-warning">
@@ -164,9 +175,9 @@ export default function Layout({ children }: LayoutProps) {
                   {user?.role === "admin" ? t("admin") : t("user")}
                 </p>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleLogout}
                 data-testid="logout-button"
               >

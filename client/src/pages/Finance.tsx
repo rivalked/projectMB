@@ -18,7 +18,7 @@ import { useI18n } from "@/lib/i18n";
 
 const paymentMethodColors = {
   cash: "#10b981",
-  card: "#3b82f6", 
+  card: "#3b82f6",
   online: "#8b5cf6"
 };
 
@@ -87,9 +87,9 @@ export default function Finance() {
   };
 
   const formatCurrency = (amount: string | number) => {
-    return new Intl.NumberFormat("ru-RU", {
+    return new Intl.NumberFormat("uz-UZ", {
       style: "currency",
-      currency: "RUB",
+      currency: "UZS",
       minimumFractionDigits: 0,
     }).format(typeof amount === "string" ? parseFloat(amount) : amount);
   };
@@ -261,7 +261,7 @@ export default function Finance() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value) => [formatCurrency(Number(value)), t("weekly_revenue")]}
                   />
                   <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={4} />
@@ -290,7 +290,7 @@ export default function Finance() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value, name) => [formatCurrency(Number(value)), name]}
                   />
                 </PieChart>
@@ -299,7 +299,7 @@ export default function Finance() {
             <div className="flex justify-center space-x-4 mt-4">
               {pieChartData.map((entry, index) => (
                 <div key={index} className="flex items-center">
-                  <div 
+                  <div
                     className="w-3 h-3 rounded-full mr-2"
                     style={{ backgroundColor: entry.color }}
                   />
@@ -367,7 +367,7 @@ export default function Finance() {
                         {getServiceName(payment.appointmentId)}
                       </TableCell>
                       <TableCell>
-                        <Badge 
+                        <Badge
                           variant="secondary"
                           className="text-xs"
                           data-testid={`badge-payment-method-${payment.id}`}

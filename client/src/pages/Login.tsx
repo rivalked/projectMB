@@ -39,7 +39,7 @@ export default function Login() {
         title: "Добро пожаловать!",
         description: "Вход выполнен успешно",
       });
-      setLocation("/");
+      setLocation("/dashboard");
     } catch (err: any) {
       const errorMessage = err.message || "Неверный email или пароль";
       setError(errorMessage);

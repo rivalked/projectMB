@@ -9,6 +9,7 @@ type JwtUserPayload = {
   id: string;
   email: string;
   role: string;
+  tenantId: string | null;
 };
 
 const ACCESS_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutes
@@ -29,7 +30,7 @@ const refreshStore = createRefreshStore(db);
 
 export function generateAccessToken(user: JwtUserPayload) {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
+    { id: user.id, email: user.email, role: user.role, tenantId: user.tenantId },
     JWT_SECRET as string,
     { expiresIn: ACCESS_TOKEN_TTL_SECONDS }
   );
@@ -38,7 +39,7 @@ export function generateAccessToken(user: JwtUserPayload) {
 export function generateRefreshToken(user: JwtUserPayload) {
   const jti = randomUUID();
   const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role, jti },
+    { id: user.id, email: user.email, role: user.role, tenantId: user.tenantId, jti },
     REFRESH_SECRET as string,
     { expiresIn: REFRESH_TOKEN_TTL_SECONDS }
   );
@@ -117,5 +118,4 @@ export function rotateRefreshToken(oldJti: string | undefined, user: JwtUserPayl
 export function getAccessTokenTtlSeconds() {
   return ACCESS_TOKEN_TTL_SECONDS;
 }
-
 

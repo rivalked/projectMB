@@ -9,18 +9,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertClientSchema, type Client, type InsertClient } from "@shared/schema";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye, Download, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
+import * as xlsx from "xlsx";
 
 export default function Clients() {
   const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  const [importHeaders, setImportHeaders] = useState<string[]>([]);
+  const [importData, setImportData] = useState<any[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const { data: clients = [], isLoading } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
@@ -80,6 +88,81 @@ export default function Clients() {
     client.phone.includes(searchTerm)
   );
 
+  const handleExport = async () => {
+    try {
+      const response = await authenticatedApiRequest("GET", "/api/clients/export");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "clients.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: e.message || "Не удалось скачать файл",
+      });
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target?.result as string;
+      const wb = xlsx.read(bstr, { type: "binary" });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data = xlsx.utils.sheet_to_json(ws, { header: 1 });
+      if (data.length > 0) {
+        setImportHeaders(data[0] as string[]);
+        setImportData(xlsx.utils.sheet_to_json(ws));
+
+        const headers = data[0] as string[];
+        const newMapping: Record<string, string> = {};
+        const findHeader = (keywords: string[]) => headers.find(h => keywords.some(k => typeof h === 'string' && h.toLowerCase().includes(k)));
+
+        newMapping.name = findHeader(["имя", "фио", "клиент", "name"]) || "";
+        newMapping.phone = findHeader(["телефон", "сот", "phone", "тел"]) || "";
+        newMapping.email = findHeader(["почта", "email", "e-mail"]) || "";
+        newMapping.bonusPoints = findHeader(["бонус", "баллы", "points"]) || "";
+
+        setMapping(newMapping);
+        setIsImportOpen(true);
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = '';
+  };
+
+  const handleImportSubmit = async () => {
+    setIsImporting(true);
+    let successCount = 0;
+    for (const row of importData) {
+      if (!row[mapping.name] || !row[mapping.phone]) continue; // Skip if no name or phone
+      try {
+        await addClientMutation.mutateAsync({
+          name: String(row[mapping.name]),
+          phone: String(row[mapping.phone]),
+          email: mapping.email && row[mapping.email] ? String(row[mapping.email]) : undefined,
+          bonusPoints: mapping.bonusPoints && row[mapping.bonusPoints] ? Number(row[mapping.bonusPoints]) : 0,
+        });
+        successCount++;
+      } catch (e) {
+        console.error("Import error on row:", row, e);
+      }
+    }
+    setIsImporting(false);
+    setIsImportOpen(false);
+    toast({ title: "Импорт завершен", description: `Успешно добавлено клиентов: ${successCount}` });
+  };
+
   const onSubmit = (data: InsertClient) => {
     addClientMutation.mutate(data);
   };
@@ -112,73 +195,87 @@ export default function Clients() {
 
   return (
     <div className="p-6" data-testid="clients-page">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <h2 className="text-2xl font-bold">{t("title_clients")}</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-add-client">
-              <Plus className="h-4 w-4 mr-2" />
-              {t("add_client")}
+
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Экспорт
+          </Button>
+          <div className="relative">
+            <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+            <Button variant="outline">
+              <Upload className="h-4 w-4 mr-2" />
+              Импорт
             </Button>
-          </DialogTrigger>
-          <DialogContent data-testid="dialog-add-client" aria-describedby="add-client-desc">
-            <DialogHeader>
-              <DialogTitle>{t("add_client")}</DialogTitle>
-            </DialogHeader>
-            <p id="add-client-desc" className="text-sm text-muted-foreground">Заполните данные клиента. Поля имя и телефон обязательны.</p>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("client_name")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Введите имя клиента" data-testid="input-client-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("client_phone")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="+7 (999) 123-45-67" data-testid="input-client-phone" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("client_email_optional")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} placeholder="email@example.com" data-testid="input-client-email" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    {t("cancel")}
-                  </Button>
-                  <Button type="submit" disabled={addClientMutation.isPending} data-testid="button-save-client">
-                    {addClientMutation.isPending ? "Сохранение..." : t("save")}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+          </div>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-add-client">
+                <Plus className="h-4 w-4 mr-2" />
+                {t("add_client")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent data-testid="dialog-add-client" aria-describedby="add-client-desc">
+              <DialogHeader>
+                <DialogTitle>{t("add_client")}</DialogTitle>
+              </DialogHeader>
+              <p id="add-client-desc" className="text-sm text-muted-foreground">Заполните данные клиента. Поля имя и телефон обязательны.</p>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("client_name")}</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Введите имя клиента" data-testid="input-client-name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("client_phone")}</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="+7 (999) 123-45-67" data-testid="input-client-phone" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("client_email_optional")}</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} placeholder="email@example.com" data-testid="input-client-email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      {t("cancel")}
+                    </Button>
+                    <Button type="submit" disabled={addClientMutation.isPending} data-testid="button-save-client">
+                      {addClientMutation.isPending ? "Сохранение..." : t("save")}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -244,7 +341,7 @@ export default function Clients() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="bg-success/10 text-success" data-testid={`text-client-bonus-${client.id}`}>
-                          {client.bonusPoints || 0} 
+                          {client.bonusPoints || 0}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -268,6 +365,59 @@ export default function Clients() {
           )}
         </CardContent>
       </Card>
+
+      {/* Smart Import Modal */}
+      <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Импорт клиентов (Smart Mapper)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Мы нашли {importData.length} строк в файле. Сопоставьте колонки из вашего файла с полями нашей базы.</p>
+
+            <div className="grid grid-cols-2 gap-4 border-b pb-2 font-medium">
+              <div>Поле в CRM</div>
+              <div>Колонка из файла</div>
+            </div>
+
+            {[
+              { id: "name", label: "Имя (обязательно)*" },
+              { id: "phone", label: "Телефон (обязательно)*" },
+              { id: "email", label: "Email" },
+              { id: "bonusPoints", label: "Бонусные баллы" },
+            ].map(field => (
+              <div key={field.id} className="grid grid-cols-2 gap-4 items-center">
+                <div className="text-sm">{field.label}</div>
+                <Select
+                  value={mapping[field.id]}
+                  onValueChange={(val: string) => setMapping(prev => ({ ...prev, [field.id]: val }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Не выбрано" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">{"-- Пропустить --"}</SelectItem>
+                    {importHeaders.map((header, idx) => (
+                      <SelectItem key={idx} value={header || `empty-${idx}`}>
+                        {header || `Колонка ${idx + 1}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+
+            <div className="pt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsImportOpen(false)} disabled={isImporting}>
+                Отмена
+              </Button>
+              <Button onClick={handleImportSubmit} disabled={isImporting || !mapping.name || !mapping.phone}>
+                {isImporting ? "Импорт..." : "Начать импорт"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

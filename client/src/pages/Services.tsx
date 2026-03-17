@@ -98,7 +98,7 @@ export default function Services() {
 
   const filteredServices = services.filter(service => {
     const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         service.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      service.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || service.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -114,9 +114,9 @@ export default function Services() {
   };
 
   const formatPrice = (price: string) => {
-    return new Intl.NumberFormat("ru-RU", {
+    return new Intl.NumberFormat("uz-UZ", {
       style: "currency",
-      currency: "RUB",
+      currency: "UZS",
       minimumFractionDigits: 0,
     }).format(parseFloat(price));
   };
@@ -234,7 +234,7 @@ export default function Services() {
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-service-category">
-                          <SelectValue placeholder={t("category")} />
+                            <SelectValue placeholder={t("category")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -314,8 +314,8 @@ export default function Services() {
               <div className="space-y-4">
                 {filteredServices.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground" data-testid="no-services">
-                    {searchTerm || selectedCategory !== "all" 
-                      ? t("services_not_found") 
+                    {searchTerm || selectedCategory !== "all"
+                      ? t("services_not_found")
                       : t("no_services")}
                   </div>
                 ) : (
